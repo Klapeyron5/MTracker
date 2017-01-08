@@ -11,11 +11,13 @@ import android.os.Process;
  */
 
 public class AudioReceiver {
-    private ReceiveThread recieveThread;
+    private ReceiveThread receiveThread;
     private boolean isRunning;
     private AudioRecord audioRecord;
     private byte[] buffer;
     private short[][] buffers;
+
+    int sampleRate = 44100;
 
 
     public AudioReceiver() {
@@ -23,15 +25,15 @@ public class AudioReceiver {
     }
 
     public void start() {
-        recieveThread = new ReceiveThread(this);
-        recieveThread.start();
+        receiveThread = new ReceiveThread(this);
+        receiveThread.start();
     }
 
     public void stop() {
-        if (recieveThread != null) {
-            recieveThread.toStop();
-            recieveThread.interrupt();
-            recieveThread = null;
+        if (receiveThread != null) {
+            receiveThread.toStop();
+            receiveThread.interrupt();
+            receiveThread = null;
         }
 
         Thread thread = new Thread() {
@@ -51,7 +53,7 @@ public class AudioReceiver {
                 Log.i("TAG","File writing finished");
             }
         };
-        thread.start();
+    //    thread.start();
 
 
       //  for (short[] i: buffers) {
@@ -74,8 +76,7 @@ public class AudioReceiver {
         public void run() {
             Log.i("TAG", "AudioReceiver.run()1");
             isRunning = true;
-            int sampleRate = 44100;
-            int minBufferSize = AudioRecord.getMinBufferSize(44100,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT);
+            int minBufferSize = AudioRecord.getMinBufferSize(sampleRate,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT);
             Log.i("TAG","MinBufferSize "+minBufferSize);
 
             if(minBufferSize == AudioRecord.ERROR) {
@@ -108,21 +109,25 @@ public class AudioReceiver {
             int i = 0;
             int emptyLoopCounter = 200000000;
             int loopCounter1     = 200;
-            buffers = new short[10000][minBufferSize];
+            buffers = new short[1][minBufferSize];
             long shortsRead = 0;
+            long shortsRead1 = 0;
             Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
+            StopTimingThread stopTimingThread = new StopTimingThread(audioReceiver);
+            stopTimingThread.start();
             while (isRunning) {
              //   if (i == loopCounter1) {
              //       Log.i("TAG", "AudioReceiver.run()");
              //       i = 0;
              //   }
-                if (i==9999) {
-                    audioReceiver.stop();
-                }
+            //    if (i==9999) {
+            //        audioReceiver.stop();
+             //   }
 
             //    buffer = new byte[1300];
-                int sampleRead = audioRecord.read(buffers[i],0,buffers[i].length);
+                int sampleRead = audioRecord.read(buffers[0],0,buffers[0].length);
                 shortsRead += sampleRead;
+                shortsRead1 += buffers[0].length;
 
                 if(sampleRead == AudioRecord.ERROR_INVALID_OPERATION) {
                     Log.i("TAG","audioRecord.read() returned ERROR_INVALID_OPERATION");
@@ -150,7 +155,8 @@ public class AudioReceiver {
                 audioRecord.release();
                 audioRecord = null;
             }
-            Log.i("TAG", "AudioReceiver.run()2"+" ShortsRead: "+shortsRead);
+            Log.i("TAG", "AudioReceiver.run()2"+" ShortsRead: "+shortsRead+"; seconds: "+shortsRead*1.0/(1.0*sampleRate)+
+                    "; seconds1: "+shortsRead1*1.0/(1.0*sampleRate));
         }
 
         public void toStop() {
@@ -160,6 +166,27 @@ public class AudioReceiver {
 
         public boolean isRunning() {
             return isRunning;
+        }
+
+
+
+        class StopTimingThread extends Thread {
+            AudioReceiver audioReceiver;
+            int soundTime = 10;
+
+            StopTimingThread (AudioReceiver l) {
+                audioReceiver = l;
+            }
+
+            @Override
+            public void run() {
+                try {
+                    sleep(soundTime*1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                audioReceiver.stop();
+            }
         }
     }
 }
