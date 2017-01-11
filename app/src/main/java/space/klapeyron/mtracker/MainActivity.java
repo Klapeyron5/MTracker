@@ -18,6 +18,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.main);
+        audioSampler = new AudioSampler(this);
 
         Button buttonAudioReceiver = (Button) findViewById(R.id.button);
         buttonAudioReceiver.setOnClickListener(new View.OnClickListener() {
@@ -25,12 +26,18 @@ public class MainActivity extends Activity {
             public void onClick(View v) {
                 if (audioSampler.isRunning()) {
                     Log.i("TAG","buttonAudioReceiver.stop()");
+                    stopSampling();
                 } else {
-                    audioReceiver.start();
+                    startSampling();
                 }
             }
         });
     }
+
+    private void initAndRunApp() {
+    }
+
+    public void setNextSoundBuffer(short[] buffer) {
     }
 
     private void startSampling() {
