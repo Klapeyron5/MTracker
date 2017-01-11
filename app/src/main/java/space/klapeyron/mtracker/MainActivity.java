@@ -38,6 +38,7 @@ public class MainActivity extends Activity {
     }
 
     public void setNextSoundBuffer(short[] buffer) {
+        Log.i("TAG","setNextSoundBuffer");
     }
 
     private void startSampling() {

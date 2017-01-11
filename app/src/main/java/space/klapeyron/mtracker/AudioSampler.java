@@ -20,7 +20,7 @@ public class AudioSampler {
 
 
     public AudioSampler(MainActivity m) {
-        MainActivity mainActivity = m;
+        mainActivity = m;
         audioRecord = null;
     }
 
