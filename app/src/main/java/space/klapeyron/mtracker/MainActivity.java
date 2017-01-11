@@ -11,26 +11,43 @@ import android.widget.Button;
  */
 
 public class MainActivity extends Activity {
-    AudioReceiver audioReceiver;
+    AudioSampler audioSampler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.main);
-        audioReceiver = new AudioReceiver();
 
-        Button buttonAudioReciever = (Button) findViewById(R.id.button);
-        buttonAudioReciever.setOnClickListener(new View.OnClickListener() {
+        Button buttonAudioReceiver = (Button) findViewById(R.id.button);
+        buttonAudioReceiver.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (audioReceiver.isRunning()) {
-                    Log.i("TAG","buttonAudioReciever.stop()");
-                    audioReceiver.stop();
+                if (audioSampler.isRunning()) {
+                    Log.i("TAG","buttonAudioReceiver.stop()");
                 } else {
                     audioReceiver.start();
                 }
             }
         });
+    }
+    }
+
+    private void startSampling() {
+        if (audioSampler != null) {
+            while (true) {
+                audioSampler.start();
+                return;
+            }
+        }
+    }
+
+    private void stopSampling() {
+        if (audioSampler != null) {
+            while(true) {
+                audioSampler.stop();
+                return;
+            }
+        }
     }
 }
