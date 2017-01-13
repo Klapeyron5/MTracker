@@ -12,6 +12,9 @@ import android.widget.Button;
 
 public class MainActivity extends Activity {
     AudioSampler audioSampler;
+    AudioDrawer audioDrawer;
+
+    MainActivity link =this;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +27,9 @@ public class MainActivity extends Activity {
         buttonAudioReceiver.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                audioDrawer = new AudioDrawer(link);
+                setContentView(audioDrawer);
+
                 if (audioSampler.isRunning()) {
                     Log.i("TAG","buttonAudioReceiver.stop()");
                     stopSampling();
