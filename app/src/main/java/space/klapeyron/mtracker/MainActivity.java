@@ -1,9 +1,12 @@
 package space.klapeyron.mtracker;
 
 import android.app.Activity;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 
 /**
@@ -20,24 +23,14 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.main);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+
         audioSampler = new AudioSampler(this);
+        audioDrawer = new AudioDrawer(link);
+        setContentView(audioDrawer);
 
-        Button buttonAudioReceiver = (Button) findViewById(R.id.button);
-        buttonAudioReceiver.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                audioDrawer = new AudioDrawer(link);
-                setContentView(audioDrawer);
-
-                if (audioSampler.isRunning()) {
-                    Log.i("TAG","buttonAudioReceiver.stop()");
-                    stopSampling();
-                } else {
-                    startSampling();
-                }
-            }
-        });
+        startSampling();
     }
 
     private void initAndRunApp() {
@@ -45,6 +38,7 @@ public class MainActivity extends Activity {
 
     public void setNextSoundBuffer(short[] buffer) {
         Log.i("TAG","setNextSoundBuffer");
+
     }
 
     private void startSampling() {
