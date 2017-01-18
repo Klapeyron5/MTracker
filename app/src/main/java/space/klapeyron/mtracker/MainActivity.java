@@ -4,10 +4,7 @@ import android.app.Activity;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
-import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
 
 /**
  * Created by Klapeyron on 03.01.2017.
@@ -16,6 +13,7 @@ import android.widget.Button;
 public class MainActivity extends Activity {
     AudioSampler audioSampler;
     AudioDrawer audioDrawer;
+    private AudioDrawer.DrawThread drawThread;
 
     MainActivity link =this;
 
@@ -37,8 +35,16 @@ public class MainActivity extends Activity {
     }
 
     public void setNextSoundBuffer(short[] buffer) {
-        Log.i("TAG","setNextSoundBuffer");
+    //    Log.i("TAG","setNextSoundBuffer 0 "+buffer[2]);
+        short[] b = buffer;
+     //   Log.i("TAG","setNextSoundBuffer 1");
 
+        drawThread = audioDrawer.getThread();
+    //    Log.i("TAG","setNextSoundBuffer 2");
+        if(drawThread == null)
+            Log.i("TAG","drawThread == null");
+        drawThread.setBuffer(buffer);
+    //    Log.i("TAG","setNextSoundBuffer 3");
     }
 
     private void startSampling() {

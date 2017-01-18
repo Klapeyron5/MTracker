@@ -15,8 +15,9 @@ public class AudioSampler {
     private ReceiveThread receiveThread;
     private boolean isRunning;
     private AudioRecord audioRecord;
-    private short[] buffer;
+    public static short[] buffer;
     int sampleRate = 44100;
+    public int minBufferSize;
 
 
     public AudioSampler(MainActivity m) {
@@ -52,7 +53,7 @@ public class AudioSampler {
         public void run() {
             Log.i("TAG", "AudioSampler.run()1");
             isRunning = true;
-            int minBufferSize = AudioRecord.getMinBufferSize(sampleRate,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT);
+            minBufferSize = AudioRecord.getMinBufferSize(sampleRate,AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_16BIT);
             Log.i("TAG","MinBufferSize "+minBufferSize);
 
             if(minBufferSize == AudioRecord.ERROR) {
@@ -89,7 +90,7 @@ public class AudioSampler {
         //    stopTimingThread.start();
             while (isRunning) {
                 int sampleRead = audioRecord.read(buffer,0,buffer.length);
-                mainActivity.setNextSoundBuffer(buffer);
+                mainActivity.setNextSoundBuffer(AudioSampler.buffer);
                 shortsRead += sampleRead;//TODO
                 shortsRead1 += buffer.length;//TODO
 

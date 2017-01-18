@@ -14,22 +14,32 @@ import android.view.SurfaceView;
  */
 
 public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
+    private AudioDrawer viewLink = this;
     private MainActivity mainActivity;
     private Bitmap bitmap;
     private Canvas canvas;
     private Paint paint;
     private int screenWidth;
     private int screenHeight;
-    private DrawThread drawThread;
+    public DrawThread drawThread;
+    private SurfaceHolder mHolder;
 
     public AudioDrawer(Context context) {
         super(context);
+        mHolder = getHolder();
+        mHolder.addCallback(this);
         mainActivity = (MainActivity) context;
+        DisplayMetrics metrics = new DisplayMetrics();
+        mainActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        screenHeight = metrics.heightPixels;
+        screenWidth = metrics.widthPixels;
+        drawThread = new DrawThread(mHolder);
 
-        drawConstructor();
+
+    //    drawConstructor();
     }
 
-    @Override
+    /*@Override
     protected void onDraw(Canvas canvas) {
         Log.i("TAG","onDraw");
         canvas.drawBitmap(bitmap,0,0,paint);
@@ -38,29 +48,11 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
     private void drawConstructor() {
         setBlackScreen();
         invalidate();
-    }
-
-    private void setBlackScreen() {
-        //вычисляем размеры экрана
-        DisplayMetrics metrics = new DisplayMetrics();
-        mainActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
-        screenHeight = metrics.heightPixels;
-        screenWidth = metrics.widthPixels;
-        Log.i("TAG","Height: "+screenHeight);
-        Log.i("TAG","Width: "+screenWidth);
-
-        bitmap = Bitmap.createBitmap(screenWidth,screenHeight,Bitmap.Config.ARGB_8888);
-        canvas = new Canvas(bitmap);
-        paint = new Paint(Paint.DITHER_FLAG);
-
-        canvas.drawColor(PaintDictionary.black);
-    }
+    }*/
 
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
         Log.i("TAG", "GameView.surfaceCreated");
-        drawThread = new DrawThread();
-        drawThread.setRunning(true);
         drawThread.start();
     }
 
@@ -74,45 +66,71 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
         Log.i("TAG", "GameView.surfaceDestroyed()");
         boolean retry = true;
         while (retry) {
-            try {
-                drawThread.setRunning(false);
-                Log.i(MainActivity.commonTAG, "GameView.surfaceDestroyed setRunning()");
-                drawThread.join();
-                Log.i(MainActivity.commonTAG, "GameView.surfaceDestroyed join()");
-                retry = false;
-            } catch (InterruptedException e) {
-                Log.i(MainActivity.commonTAG, "GameView.surfaceDestroyed.NOTjoin()");
-            }
+            if (drawThread != null) {
+                drawThread.interrupt();
+                drawThread = null;}
+            retry = false;
         }
     }
-
 
     public static class PaintDictionary {
         public static int black = 0xff000000;
         public static int blue = 0xff0022FF;
+        public static int red = 0xffFF0000;
+    }
+
+    public DrawThread getThread() {
+        return drawThread;
     }
 
     class DrawThread extends Thread {
+        private short[] buffer;
+        private SurfaceHolder mSurfaceHolder;
 
-        DrawThread() {
-
+        DrawThread(SurfaceHolder surfaceHolder) {
+            mSurfaceHolder = surfaceHolder;
+            buffer = new short[mainActivity.audioSampler.minBufferSize];
+            Log.i("TAG","mainActivity.audioSampler.minBufferSize"+mainActivity.audioSampler.minBufferSize);
         }
 
         @Override
         public void run() {
-            canvas = gameViewLink.getHolder().lockCanvas();
-            onDraw();
-            gameViewLink.getHolder().unlockCanvasAndPost(canvas);
+            while(true) {
+                Canvas localCanvas = null;
+                try {
+                    localCanvas = mSurfaceHolder.lockCanvas(null);
+                    synchronized (mSurfaceHolder)
+                    {
+                        if (localCanvas != null)
+                            onDraw(localCanvas);
+
+                    }
+                } finally {
+                    mSurfaceHolder.unlockCanvasAndPost(localCanvas);
+                }
+            }
         }
 
-        private void onDraw() {
+        private void onDraw(Canvas lcanvas) {
+            lcanvas.drawColor(PaintDictionary.black);
 
+            paint = new Paint();
+            paint.setAntiAlias(true);
+            paint.setDither(true);
+            paint.setColor(PaintDictionary.red); //0xAA-HTML, AA - прозрачность
+            paint.setStrokeWidth(6);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeJoin(Paint.Join.ROUND);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+
+            lcanvas.drawLine(screenWidth/2,screenHeight-2,screenWidth/2,0,paint);
+        //    lcanvas.drawCircle(0,0,20,paint);
         }
 
-        public void setBuffer(short[] paramArrayOfShort) {
-            synchronized (buffer)
-            {
-                buffer = paramArrayOfShort;
+        public void setBuffer(short[] b) {
+            synchronized (buffer) {
+                buffer = b;
+            //    Log.i("TAG","BUFFERSIZE "+buffer.length);
                 return;
             }
         }
