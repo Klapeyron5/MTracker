@@ -78,14 +78,19 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
 
     class DrawThread extends Thread {
         private short[] buffer;
+        private short[] fullBuffer;
+        private short[] averageFullBuffer;
+        private float scale = 1; //number of seconds visualized on screen
         private SurfaceHolder mSurfaceHolder;
         private int minBufferSize;
         private int sampleRate;
         private Paint paintForEnvelope;
         private int screenWidth;
         private int screenHeight;
+        private int ypos;
         private int numberOfBuffToAverage;
         private float numberOfBuffToAverageRest;
+        private float summRests;
 
         DrawThread(SurfaceHolder surfaceHolder) {
             mSurfaceHolder = surfaceHolder;
@@ -97,6 +102,9 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             mainActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
             screenHeight = metrics.heightPixels;
             screenWidth = metrics.widthPixels;
+            ypos = screenHeight/2;
+
+            averageFullBuffer = new short[screenWidth];
 
             numberOfBuffToAverage = sampleRate/screenWidth; //integer part of number
             numberOfBuffToAverageRest = (float)sampleRate/(float)screenWidth%1;
@@ -107,7 +115,7 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             paintForEnvelope.setAntiAlias(true);
             paintForEnvelope.setDither(true);
             paintForEnvelope.setColor(PaintDictionary.red); //0xAA-HTML, AA - прозрачность
-            paintForEnvelope.setStrokeWidth(6);
+            paintForEnvelope.setStrokeWidth(1);
             paintForEnvelope.setStyle(Paint.Style.STROKE);
             paintForEnvelope.setStrokeJoin(Paint.Join.ROUND);
             paintForEnvelope.setStrokeCap(Paint.Cap.ROUND);
@@ -133,19 +141,63 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
         private void onDraw(Canvas lcanvas) {
             lcanvas.drawColor(PaintDictionary.black);
 
-            if(buffer != null)
-                lcanvas.drawLine(screenWidth/2-buffer[0],screenHeight/2,screenWidth/2+buffer[0],screenHeight/2,paintForEnvelope);
+        //    if(buffer != null)
+        //        lcanvas.drawLine(screenWidth/2-buffer[0],screenHeight/2,screenWidth/2+buffer[0],screenHeight/2,paintForEnvelope);
 
+            for(int i=0;i<screenWidth;i++) {
+                lcanvas.drawLine(i,ypos,i,ypos+1+Math.round((float)averageFullBuffer[i]/(float)900*(float)screenHeight/(float)2),paintForEnvelope);
+             }
 
         }
 
         public void setBuffer(short[] b) {
-            if(buffer == null)
-                buffer = new short[0];
-            synchronized (buffer) {
-                buffer = b;
+            if(fullBuffer == null)
+                fullBuffer = new short[sampleRate];
+            shiftFullBuffer(b);
+            averageFullBuffer = new short[screenWidth];
+            synchronized (averageFullBuffer) {
+                toAverageFullBuffer();
             //    Log.i("TAG","BUFFERSIZE "+buffer.length);
                 return;
+            }
+
+        }
+
+        private void shiftFullBuffer(short[] b) {
+            for(int i=0;i<sampleRate-minBufferSize;i++) { //sampleRate-minBufferSize =def= fullBuffer.length-b.length
+                fullBuffer[i] = fullBuffer[i+b.length];
+            }
+            int j = 0;
+            for(int i=sampleRate-minBufferSize;i<sampleRate;i++) {
+                fullBuffer[i] = b[j];
+                j++;
+            }
+        }
+
+        private void toAverageFullBuffer() {
+            int S = 0;
+            int k = 0;
+            int numbToAverage = numberOfBuffToAverage;
+            float restBuffer = numberOfBuffToAverageRest;
+            int j = 0;
+            for(int i=0;i<sampleRate;i++) {
+                if (k<numbToAverage) {
+                    S = S + fullBuffer[i];
+                    k++;
+                } else {
+                    restBuffer += numberOfBuffToAverageRest;
+                    if (j<screenWidth) {
+                        averageFullBuffer[j] = (short) (S / numbToAverage); //without rounding
+                        j++;
+                        S = 0;
+                        k = 0;
+                    }
+                    if (restBuffer >= 1) {
+                        numbToAverage = numberOfBuffToAverage + 1;
+                        restBuffer = restBuffer % 1;
+                    } else
+                        numbToAverage = numberOfBuffToAverage;
+                }
             }
         }
     }
