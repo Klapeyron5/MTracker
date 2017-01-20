@@ -18,9 +18,6 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
     private MainActivity mainActivity;
     private Bitmap bitmap;
     private Canvas canvas;
-    private Paint paint;
-    private int screenWidth;
-    private int screenHeight;
     public DrawThread drawThread;
     private SurfaceHolder mHolder;
 
@@ -29,10 +26,6 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
         mHolder = getHolder();
         mHolder.addCallback(this);
         mainActivity = (MainActivity) context;
-        DisplayMetrics metrics = new DisplayMetrics();
-        mainActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
-        screenHeight = metrics.heightPixels;
-        screenWidth = metrics.widthPixels;
         drawThread = new DrawThread(mHolder);
 
 
@@ -86,11 +79,38 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
     class DrawThread extends Thread {
         private short[] buffer;
         private SurfaceHolder mSurfaceHolder;
+        private int minBufferSize;
+        private int sampleRate;
+        private Paint paintForEnvelope;
+        private int screenWidth;
+        private int screenHeight;
+        private int numberOfBuffToAverage;
+        private float numberOfBuffToAverageRest;
 
         DrawThread(SurfaceHolder surfaceHolder) {
             mSurfaceHolder = surfaceHolder;
-            buffer = new short[mainActivity.audioSampler.minBufferSize];
-            Log.i("TAG","mainActivity.audioSampler.minBufferSize"+mainActivity.audioSampler.minBufferSize);
+            Log.i("TAG","DrawThread: mainActivity.audioSampler.minBufferSize"+mainActivity.audioSampler.minBufferSize);
+            minBufferSize = mainActivity.audioSampler.minBufferSize;
+            sampleRate = mainActivity.audioSampler.sampleRate;
+
+            DisplayMetrics metrics = new DisplayMetrics();
+            mainActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+            screenHeight = metrics.heightPixels;
+            screenWidth = metrics.widthPixels;
+
+            numberOfBuffToAverage = sampleRate/screenWidth; //integer part of number
+            numberOfBuffToAverageRest = (float)sampleRate/(float)screenWidth%1;
+            Log.i("TAG","DrawThread: numberOfBuffToAverage: "+numberOfBuffToAverage);
+            Log.i("TAG","DrawThread: numberOfBuffToAverageRest: "+numberOfBuffToAverageRest);
+
+            paintForEnvelope = new Paint();
+            paintForEnvelope.setAntiAlias(true);
+            paintForEnvelope.setDither(true);
+            paintForEnvelope.setColor(PaintDictionary.red); //0xAA-HTML, AA - прозрачность
+            paintForEnvelope.setStrokeWidth(6);
+            paintForEnvelope.setStyle(Paint.Style.STROKE);
+            paintForEnvelope.setStrokeJoin(Paint.Join.ROUND);
+            paintForEnvelope.setStrokeCap(Paint.Cap.ROUND);
         }
 
         @Override
@@ -99,8 +119,7 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
                 Canvas localCanvas = null;
                 try {
                     localCanvas = mSurfaceHolder.lockCanvas(null);
-                    synchronized (mSurfaceHolder)
-                    {
+                    synchronized (mSurfaceHolder) {
                         if (localCanvas != null)
                             onDraw(localCanvas);
 
@@ -114,20 +133,15 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
         private void onDraw(Canvas lcanvas) {
             lcanvas.drawColor(PaintDictionary.black);
 
-            paint = new Paint();
-            paint.setAntiAlias(true);
-            paint.setDither(true);
-            paint.setColor(PaintDictionary.red); //0xAA-HTML, AA - прозрачность
-            paint.setStrokeWidth(6);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeJoin(Paint.Join.ROUND);
-            paint.setStrokeCap(Paint.Cap.ROUND);
+            if(buffer != null)
+                lcanvas.drawLine(screenWidth/2-buffer[0],screenHeight/2,screenWidth/2+buffer[0],screenHeight/2,paintForEnvelope);
 
-            lcanvas.drawLine(screenWidth/2,screenHeight-2,screenWidth/2,0,paint);
-        //    lcanvas.drawCircle(0,0,20,paint);
+
         }
 
         public void setBuffer(short[] b) {
+            if(buffer == null)
+                buffer = new short[0];
             synchronized (buffer) {
                 buffer = b;
             //    Log.i("TAG","BUFFERSIZE "+buffer.length);
