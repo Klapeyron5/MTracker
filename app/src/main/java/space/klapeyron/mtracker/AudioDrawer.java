@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -20,28 +21,75 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
     private Canvas canvas;
     public DrawThread drawThread;
     private SurfaceHolder mHolder;
+    private int screenWidth;
+    private int screenHeight;
+    private int buttonNumber = 0;
+    private int buttonWidth;
+    private int buttonHeight;
 
     public AudioDrawer(Context context) {
         super(context);
         mHolder = getHolder();
         mHolder.addCallback(this);
         mainActivity = (MainActivity) context;
+
+        DisplayMetrics metrics = new DisplayMetrics();
+        mainActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        screenHeight = metrics.heightPixels;
+        screenWidth = metrics.widthPixels;
+
+        buttonHeight = screenHeight/7;
+        buttonWidth = screenHeight/5;
+
         drawThread = new DrawThread(mHolder);
-
-
-    //    drawConstructor();
     }
 
-    /*@Override
-    protected void onDraw(Canvas canvas) {
-        Log.i("TAG","onDraw");
-        canvas.drawBitmap(bitmap,0,0,paint);
+    @Override
+    public boolean onTouchEvent(MotionEvent e) {
+        switch (e.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                whatButton((int)e.getX(),(int)e.getY());
+                break;
+            case MotionEvent.ACTION_UP:
+                int bt = buttonNumber;
+                whatButton((int)e.getX(),(int)e.getY());
+                if (bt==buttonNumber) {
+                    switch (bt) {
+                        case 1:
+                            Log.i("TAG","Button"+bt);
+                            mainActivity.startDFT();
+                            break;
+                        case 2:
+                            Log.i("TAG","Button"+bt);
+                            mainActivity.stopDFT();
+                            break;
+                        case 3:
+                            Log.i("TAG","Button"+bt);
+                            break;
+                    }
+                }
+                break;
+        }
+        return true;
     }
 
-    private void drawConstructor() {
-        setBlackScreen();
-        invalidate();
-    }*/
+    private void whatButton(int x,int y) {
+        if (y < buttonHeight) {
+            if (x < buttonWidth) {
+                buttonNumber = 1;
+            } else {
+                if (x < buttonWidth*2+1) {
+                    buttonNumber = 2;
+                } else {
+                    if (x < buttonWidth*3+2) {
+                        buttonNumber = 3;
+                    }
+                }
+            }
+        } else {
+            buttonNumber = 0;
+        }
+    }
 
     @Override
     public void surfaceCreated(SurfaceHolder surfaceHolder) {
@@ -69,6 +117,7 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
     public static class PaintDictionary {
         public static int black = 0xff000000;
         public static int blue = 0xff0022FF;
+        public static int lightBlue = 0xff00FFFF;
         public static int red = 0xffFF0000;
     }
 
@@ -85,12 +134,14 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
         private int minBufferSize;
         private int sampleRate;
         private Paint paintForEnvelope;
-        private int screenWidth;
-        private int screenHeight;
+        private Paint paintForButtons;
+        private Paint paintForButtonsText;
+        private int textSize;
         private int ypos;
         private int numberOfBuffToAverage;
         private float numberOfBuffToAverageRest;
-        private float summRests;
+
+        private short[] averageFreqSpectrBuffer;
 
         DrawThread(SurfaceHolder surfaceHolder) {
             mSurfaceHolder = surfaceHolder;
@@ -98,11 +149,8 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             minBufferSize = mainActivity.audioSampler.minBufferSize;
             sampleRate = mainActivity.audioSampler.sampleRate;
 
-            DisplayMetrics metrics = new DisplayMetrics();
-            mainActivity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
-            screenHeight = metrics.heightPixels;
-            screenWidth = metrics.widthPixels;
             ypos = screenHeight/2;
+            textSize = buttonHeight/3;
 
             averageFullBuffer = new short[screenWidth];
 
@@ -114,11 +162,29 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             paintForEnvelope = new Paint();
             paintForEnvelope.setAntiAlias(true);
             paintForEnvelope.setDither(true);
-            paintForEnvelope.setColor(PaintDictionary.red); //0xAA-HTML, AA - прозрачность
+            paintForEnvelope.setColor(PaintDictionary.blue); //0xAA-HTML, AA - прозрачность
             paintForEnvelope.setStrokeWidth(1);
             paintForEnvelope.setStyle(Paint.Style.STROKE);
             paintForEnvelope.setStrokeJoin(Paint.Join.ROUND);
             paintForEnvelope.setStrokeCap(Paint.Cap.ROUND);
+
+            paintForButtons = new Paint();
+            paintForButtons.setAntiAlias(true);
+            paintForButtons.setDither(true);
+            paintForButtons.setColor(PaintDictionary.lightBlue); //0xAA-HTML, AA - прозрачность
+            paintForButtons.setStrokeWidth(1);
+            paintForButtons.setStyle(Paint.Style.STROKE);
+            paintForButtons.setStrokeJoin(Paint.Join.ROUND);
+            paintForButtons.setStrokeCap(Paint.Cap.ROUND);
+
+            paintForButtonsText = new Paint();
+            paintForButtonsText.setAntiAlias(true);
+            paintForButtonsText.setDither(true);
+            paintForButtonsText.setColor(PaintDictionary.lightBlue); //0xAA-HTML, AA - прозрачность
+            paintForButtonsText.setTextSize(textSize);
+            paintForButtonsText.setStyle(Paint.Style.STROKE);
+            paintForButtonsText.setStrokeJoin(Paint.Join.ROUND);
+            paintForButtonsText.setStrokeCap(Paint.Cap.ROUND);
         }
 
         @Override
@@ -128,9 +194,10 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
                 try {
                     localCanvas = mSurfaceHolder.lockCanvas(null);
                     synchronized (mSurfaceHolder) {
-                        if (localCanvas != null)
-                            onDraw(localCanvas);
-
+                        if (localCanvas != null) {
+                            onDrawEnvelope(localCanvas);
+                            onDrawButtons(localCanvas);
+                        }
                     }
                 } finally {
                     mSurfaceHolder.unlockCanvasAndPost(localCanvas);
@@ -138,18 +205,36 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             }
         }
 
-        private void onDraw(Canvas lcanvas) {
+        private void onDrawButtons(Canvas lcanvas) {
+            lcanvas.drawRect(0,0,buttonWidth,buttonHeight,paintForButtons);
+            lcanvas.drawText("Start",(int)(buttonHeight/2-2.5*textSize/3),buttonWidth/2-textSize/2,paintForButtonsText);
+            lcanvas.drawRect(buttonWidth+2,0,buttonWidth*2+2,buttonHeight,paintForButtons);
+            lcanvas.drawText("Stop",(int)(buttonWidth+2+buttonHeight/2-2*textSize/3),buttonWidth/2-textSize/2,paintForButtonsText);
+            lcanvas.drawRect(buttonWidth*2+4,0,buttonWidth*3+4,buttonHeight,paintForButtons);
+            lcanvas.drawText("Change",(int)(buttonWidth*2+4+buttonHeight/2-3*textSize/3),buttonWidth/2-textSize/2,paintForButtonsText);
+
+        }
+
+        private void onDrawEnvelope(Canvas lcanvas) {
             lcanvas.drawColor(PaintDictionary.black);
 
         //    if(buffer != null)
         //        lcanvas.drawLine(screenWidth/2-buffer[0],screenHeight/2,screenWidth/2+buffer[0],screenHeight/2,paintForEnvelope);
 
             for(int i=0;i<screenWidth;i++) {
-                lcanvas.drawLine(i,ypos,i,ypos+1+Math.round((float)averageFullBuffer[i]/(float)1200*(float)screenHeight/(float)2),paintForEnvelope);
+                lcanvas.drawLine(i,ypos,i,ypos+1+Math.round((float)averageFullBuffer[i]/(float)2500*(float)screenHeight/(float)2),paintForEnvelope);
              }
         }
 
-        public void setBuffer(short[] b) {
+        private void onDrawFrequenceSpectrum(Canvas lcanvas) {
+            lcanvas.drawColor(PaintDictionary.black);
+
+            for(int i=0;i<screenWidth;i++) {
+                lcanvas.drawLine(i,0,i,0+Math.round((float)averageFullBuffer[i]/(float)1200*(float)screenHeight/(float)2),paintForEnvelope);
+            }
+        }
+
+        public void setEnvelopeBuffer(short[] b) {
             if(fullBuffer == null)
                 fullBuffer = new short[sampleRate];
             shiftFullBuffer(b);
@@ -159,7 +244,18 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             //    Log.i("TAG","BUFFERSIZE "+buffer.length);
                 return;
             }
+        }
 
+        public void setFrequenceSpectrumBuffer(short[] b) {
+            if(fullBuffer == null)
+                fullBuffer = new short[sampleRate];
+            shiftFullBuffer(b);
+            averageFreqSpectrBuffer = new short[screenWidth];
+            synchronized (averageFreqSpectrBuffer) {
+                toAverageFullBuffer();
+                //    Log.i("TAG","BUFFERSIZE "+buffer.length);
+                return;
+            }
         }
 
         private void shiftFullBuffer(short[] b) {

@@ -27,53 +27,27 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-    //    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
         audioSampler = new AudioSampler(this);
-    //    audioDrawer = new AudioDrawer(link);
+        audioDrawer = new AudioDrawer(link);
         dft = new DFT();
-    //    setContentView(audioDrawer);
-        setContentView(R.layout.main);
-
-        Button button1 = (Button) findViewById(R.id.button1);
-        button1.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                DFTCounter = 0;
-            }
-        });
-
-        Button button2 = (Button) findViewById(R.id.button2);
-        button2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                DFTCounter = 40000;
-            }
-        });
+        setContentView(audioDrawer);
 
         startSampling();
     }
 
-    private void initAndRunApp() {
-    }
-
     public void setNextSoundBuffer(short[] buffer) {
-    //    Log.i("TAG","setNextSoundBuffer 0 "+buffer[2]);
-    //    short[] b = buffer;
-     //   Log.i("TAG","setNextSoundBuffer 1");
-
-//        drawThread = audioDrawer.getThread();
-    //    Log.i("TAG","setNextSoundBuffer 2");
-//        if(drawThread == null)
-//            Log.i("TAG","drawThread == null");
-//        drawThread.setBuffer(buffer);
+        drawThread = audioDrawer.getThread();
+        if(drawThread == null)
+            Log.i("TAG","drawThread == null");
+        drawThread.setEnvelopeBuffer(buffer);
 
         if (DFTCounter < DFTNumbers) {
             if (DFTCounter % 4 == 0)
                 dft.setBuffer(buffer);
             DFTCounter++;
         }
-    //    Log.i("TAG","setNextSoundBuffer 3");
     }
 
     private void startSampling() {
@@ -92,5 +66,13 @@ public class MainActivity extends Activity {
                 return;
             }
         }
+    }
+
+    public void startDFT() {
+        DFTCounter = 0;
+    }
+
+    public void stopDFT() {
+        DFTCounter = 40000;
     }
 }
