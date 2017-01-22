@@ -4,8 +4,15 @@
     android:layout_height="match_parent">
 
     <Button
-        android:text="AudioReciever.run()/stop()"
+        android:text="start"
+        android:layout_marginTop="50dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/button" />
+        android:id="@+id/button1" />
+    <Button
+        android:text="stop"
+        android:layout_marginTop="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/button2" />
 </LinearLayout>

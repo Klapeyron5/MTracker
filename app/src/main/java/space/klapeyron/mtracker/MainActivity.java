@@ -4,7 +4,9 @@ import android.app.Activity;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 
 /**
  * Created by Klapeyron on 03.01.2017.
@@ -15,6 +17,8 @@ public class MainActivity extends Activity {
     AudioDrawer audioDrawer;
     private AudioDrawer.DrawThread drawThread;
     private DFT dft;
+    private final int DFTNumbers = 40000;
+    private int DFTCounter = DFTNumbers;
 
     MainActivity link =this;
 
@@ -23,13 +27,29 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+    //    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
         audioSampler = new AudioSampler(this);
     //    audioDrawer = new AudioDrawer(link);
         dft = new DFT();
     //    setContentView(audioDrawer);
         setContentView(R.layout.main);
+
+        Button button1 = (Button) findViewById(R.id.button1);
+        button1.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DFTCounter = 0;
+            }
+        });
+
+        Button button2 = (Button) findViewById(R.id.button2);
+        button2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DFTCounter = 40000;
+            }
+        });
 
         startSampling();
     }
@@ -47,7 +67,12 @@ public class MainActivity extends Activity {
 //        if(drawThread == null)
 //            Log.i("TAG","drawThread == null");
 //        drawThread.setBuffer(buffer);
-        dft.setBuffer(buffer);
+
+        if (DFTCounter < DFTNumbers) {
+            if (DFTCounter % 4 == 0)
+                dft.setBuffer(buffer);
+            DFTCounter++;
+        }
     //    Log.i("TAG","setNextSoundBuffer 3");
     }
 
