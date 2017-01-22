@@ -145,9 +145,8 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
         //        lcanvas.drawLine(screenWidth/2-buffer[0],screenHeight/2,screenWidth/2+buffer[0],screenHeight/2,paintForEnvelope);
 
             for(int i=0;i<screenWidth;i++) {
-                lcanvas.drawLine(i,ypos,i,ypos+1+Math.round((float)averageFullBuffer[i]/(float)900*(float)screenHeight/(float)2),paintForEnvelope);
+                lcanvas.drawLine(i,ypos,i,ypos+1+Math.round((float)averageFullBuffer[i]/(float)1200*(float)screenHeight/(float)2),paintForEnvelope);
              }
-
         }
 
         public void setBuffer(short[] b) {

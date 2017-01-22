@@ -14,6 +14,7 @@ public class MainActivity extends Activity {
     AudioSampler audioSampler;
     AudioDrawer audioDrawer;
     private AudioDrawer.DrawThread drawThread;
+    private DFT dft;
 
     MainActivity link =this;
 
@@ -25,8 +26,10 @@ public class MainActivity extends Activity {
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
         audioSampler = new AudioSampler(this);
-        audioDrawer = new AudioDrawer(link);
-        setContentView(audioDrawer);
+    //    audioDrawer = new AudioDrawer(link);
+        dft = new DFT();
+    //    setContentView(audioDrawer);
+        setContentView(R.layout.main);
 
         startSampling();
     }
@@ -39,11 +42,12 @@ public class MainActivity extends Activity {
         short[] b = buffer;
      //   Log.i("TAG","setNextSoundBuffer 1");
 
-        drawThread = audioDrawer.getThread();
+//        drawThread = audioDrawer.getThread();
     //    Log.i("TAG","setNextSoundBuffer 2");
-        if(drawThread == null)
-            Log.i("TAG","drawThread == null");
-        drawThread.setBuffer(buffer);
+//        if(drawThread == null)
+//            Log.i("TAG","drawThread == null");
+//        drawThread.setBuffer(buffer);
+        dft.setBuffer(buffer);
     //    Log.i("TAG","setNextSoundBuffer 3");
     }
 
