@@ -39,7 +39,7 @@ public class MainActivity extends Activity {
 
     public void setNextSoundBuffer(short[] buffer) {
     //    Log.i("TAG","setNextSoundBuffer 0 "+buffer[2]);
-        short[] b = buffer;
+    //    short[] b = buffer;
      //   Log.i("TAG","setNextSoundBuffer 1");
 
 //        drawThread = audioDrawer.getThread();

@@ -27,17 +27,31 @@ public class DFT {
             Log.i("TAG","DFT: "+this);
             int N = xn.length;
             Xk = new double[N];
-            short re = 0;
-            short im = 0;
+            double re = 0;
+            double im = 0;
             float pi2N = 2*(float)3.1415926535/(float) N;
+            double maxXk = -1;
+            int maxk = 0;
+            double xnwn = 0;
 
             for(int j=0;j<N;j++) {
                 for (int i = 0; i < N; i++) {
-                    Xk[j] = xn[i]*Math.pow(Math.pow(Math.cos(pi2N*j*i),2)+Math.pow(Math.sin(pi2N*j*i),2),0.5);
+                    xnwn = xn[i]*0.5*(1-Math.cos(2*(float)3.1415926535*i/(N-1)));
+                    re += xnwn*Math.cos(pi2N*j*i);
+                    im += xnwn*Math.sin(pi2N*j*i);
+                }
+                Xk[j] += Math.pow(Math.pow(re,2)+Math.pow(im,2),0.5);
+
+                if (Xk[j]>maxXk) {
+                    maxXk = Xk[j];
+                    maxk = j;
                 }
             }
 
-            Log.i("TAG","DFT: "+this);
+
+
+
+            Log.i("TAG","DFT: "+this+" max freq: " + (float)maxk/(float)N*(float)44100);
             this.interrupt();
         }
     }
