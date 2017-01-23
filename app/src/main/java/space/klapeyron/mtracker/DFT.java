@@ -9,6 +9,8 @@ import android.util.Log;
 public class DFT {
     private short[] xn;
     private double[] Xk;
+    double[] maxXk = {-1,-1,-1};
+    int[] maxk = {-1,-1,-1};
 
     public DFT() {
 
@@ -20,6 +22,18 @@ public class DFT {
         dftThread.start();
     }
 
+    public double[] getXk() {
+        return Xk;
+    }
+
+    public double[] getMaxXk() {
+        return maxXk;
+    }
+
+    public int[] getMaxk() {
+        return maxk;
+    }
+
     private class DFTThread extends Thread {
 
         @Override
@@ -27,11 +41,11 @@ public class DFT {
         //    Log.i("TAG","DFT: "+this);
             int N = xn.length;
             Xk = new double[N/2];
+            maxXk = new double[] {-1,-1,-1,-1,-1};
+            maxk = new int[] {-1,-1,-1,-1,-1};
             double re = 0;
             double im = 0;
             float pi2N = 2*(float)3.1415926535/(float) N;
-            double[] maxXk = {-1,-1,-1,-1,-1};
-            int[] maxk = {-1,-1,-1,-1,-1};
             double xnwn = 0;
 
             for(int j=0;j<Xk.length;j++) {
@@ -42,26 +56,26 @@ public class DFT {
                 }
                 Xk[j] += Math.pow(Math.pow(re,2)+Math.pow(im,2),0.5);
 
-                for(int p=0;p<5;p++) {
+            /*    for(int p=0;p<3;p++) {
                     if (Xk[j]>maxXk[p]) {
-                        for(int l=4;l>p;l--) {
+                        for(int l=2;l>p;l--) {
                             maxXk[l]=maxXk[l-1];
                         }
                         maxXk[p] = Xk[j];
                         maxk[p] = j;
-                        p = 5;
+                        p = 3;
                     }
-                }
+                }*/
 
-            /*    if (Xk[j]>maxXk[0]) {
+                if (Xk[j]>maxXk[0]) {
                     maxXk[0] = Xk[j];
                     maxk[0] = j;
-                }*/
+                }
             }
 
-            float helpN = (float)44100/(float)N;
-            Log.i("TAG","DFT: "+this+" max freq: " + (float)maxk[0]*helpN+" " + (float)maxk[1]*helpN
-                    +" " + (float)maxk[2]*helpN+" " + (float)maxk[3]*helpN+" " + (float)maxk[4]*helpN);
+        //    float helpN = (float)44100/(float)N;
+        //    Log.i("TAG","DFT: "+this+" max freq: " + (float)maxk[0]*helpN+" " + (float)maxk[1]*helpN
+        //            +" " + (float)maxk[2]*helpN+" " + (float)maxk[3]*helpN+" " + (float)maxk[4]*helpN);
             this.interrupt();
         }
     }

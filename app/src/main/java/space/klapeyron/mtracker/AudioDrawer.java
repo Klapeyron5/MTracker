@@ -26,6 +26,7 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
     private int buttonNumber = 0;
     private int buttonWidth;
     private int buttonHeight;
+    public int drawMode = 1;
 
     public AudioDrawer(Context context) {
         super(context);
@@ -65,6 +66,14 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
                             break;
                         case 3:
                             Log.i("TAG","Button"+bt);
+                            switch (drawMode) {
+                                case 1:
+                                    drawMode = 2;
+                                    break;
+                                case 2:
+                                    drawMode = 1;
+                                    break;
+                            }
                             break;
                     }
                 }
@@ -134,6 +143,7 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
         private int minBufferSize;
         private int sampleRate;
         private Paint paintForEnvelope;
+        private Paint paintForMaxes;
         private Paint paintForButtons;
         private Paint paintForButtonsText;
         private int textSize;
@@ -142,6 +152,8 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
         private float numberOfBuffToAverageRest;
 
         private short[] averageFreqSpectrBuffer;
+        double[] maxXk = {-1,-1,-1};
+        int[] maxk = {-1,-1,-1};
 
         DrawThread(SurfaceHolder surfaceHolder) {
             mSurfaceHolder = surfaceHolder;
@@ -185,6 +197,15 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             paintForButtonsText.setStyle(Paint.Style.STROKE);
             paintForButtonsText.setStrokeJoin(Paint.Join.ROUND);
             paintForButtonsText.setStrokeCap(Paint.Cap.ROUND);
+
+            paintForMaxes = new Paint();
+            paintForMaxes.setAntiAlias(true);
+            paintForMaxes.setDither(true);
+            paintForMaxes.setColor(PaintDictionary.red); //0xAA-HTML, AA - прозрачность
+            paintForMaxes.setStrokeWidth(1);
+            paintForMaxes.setStyle(Paint.Style.STROKE);
+            paintForMaxes.setStrokeJoin(Paint.Join.ROUND);
+            paintForMaxes.setStrokeCap(Paint.Cap.ROUND);
         }
 
         @Override
@@ -195,7 +216,14 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
                     localCanvas = mSurfaceHolder.lockCanvas(null);
                     synchronized (mSurfaceHolder) {
                         if (localCanvas != null) {
-                            onDrawEnvelope(localCanvas);
+                            switch (drawMode) {
+                                case 1:
+                                    onDrawEnvelope(localCanvas);
+                                    break;
+                                case 2:
+                                    onDrawFrequenceSpectrum(localCanvas);
+                                    break;
+                            }
                             onDrawButtons(localCanvas);
                         }
                     }
@@ -207,11 +235,11 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
 
         private void onDrawButtons(Canvas lcanvas) {
             lcanvas.drawRect(0,0,buttonWidth,buttonHeight,paintForButtons);
-            lcanvas.drawText("Start",(int)(buttonHeight/2-2.5*textSize/3),buttonWidth/2-textSize/2,paintForButtonsText);
+            lcanvas.drawText("Start",(int)(buttonWidth/2-2.5*textSize/2),buttonHeight/2+textSize/2,paintForButtonsText);
             lcanvas.drawRect(buttonWidth+2,0,buttonWidth*2+2,buttonHeight,paintForButtons);
-            lcanvas.drawText("Stop",(int)(buttonWidth+2+buttonHeight/2-2*textSize/3),buttonWidth/2-textSize/2,paintForButtonsText);
+            lcanvas.drawText("Stop",(int)(buttonWidth+2+buttonWidth/2-2*textSize/2),buttonHeight/2+textSize/2,paintForButtonsText);
             lcanvas.drawRect(buttonWidth*2+4,0,buttonWidth*3+4,buttonHeight,paintForButtons);
-            lcanvas.drawText("Change",(int)(buttonWidth*2+4+buttonHeight/2-3*textSize/3),buttonWidth/2-textSize/2,paintForButtonsText);
+            lcanvas.drawText("Change",(int)(buttonWidth*2+4+buttonWidth/2-3*textSize/2),buttonHeight/2+textSize/2,paintForButtonsText);
 
         }
 
@@ -223,16 +251,36 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
 
             for(int i=0;i<screenWidth;i++) {
                 lcanvas.drawLine(i,ypos,i,ypos+1+Math.round((float)averageFullBuffer[i]/(float)2500*(float)screenHeight/(float)2),paintForEnvelope);
-             }
+            }
         }
 
         private void onDrawFrequenceSpectrum(Canvas lcanvas) {
             lcanvas.drawColor(PaintDictionary.black);
 
-            for(int i=0;i<screenWidth;i++) {
-                lcanvas.drawLine(i,0,i,0+Math.round((float)averageFullBuffer[i]/(float)1200*(float)screenHeight/(float)2),paintForEnvelope);
-            }
+            if(averageFreqSpectrBuffer != null)
+                for(int i=0;i<screenWidth;i++) {
+                    if((i==maxk[0])||(i==maxk[1])||(i==maxk[2]))
+                        lcanvas.drawLine(i,screenHeight,i,screenHeight-averageFreqSpectrBuffer[i],paintForMaxes);
+                    else
+                        lcanvas.drawLine(i,screenHeight,i,screenHeight-averageFreqSpectrBuffer[i],paintForEnvelope);
+                }
+
+            float helpN = (float)44100/(float)minBufferSize;
+            lcanvas.drawText(Integer.toString((int)(maxk[0]*helpN)),screenWidth-3*buttonWidth,buttonHeight,paintForButtonsText);
+            lcanvas.drawText(Integer.toString((int)(maxk[1]*helpN)),screenWidth-2*buttonWidth,buttonHeight,paintForButtonsText);
+            lcanvas.drawText(Integer.toString((int)(maxk[2]*helpN)),screenWidth-1*buttonWidth,buttonHeight,paintForButtonsText);
         }
+
+    /*    public void setBuffer(short[] b) {
+            switch (drawMode) {
+                case 1:
+                    setEnvelopeBuffer(b);
+                    break;
+                case 2:
+                    setFrequenceSpectrumBuffer(b);
+                    break;
+            }
+        }*/
 
         public void setEnvelopeBuffer(short[] b) {
             if(fullBuffer == null)
@@ -246,14 +294,18 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             }
         }
 
-        public void setFrequenceSpectrumBuffer(short[] b) {
-            if(fullBuffer == null)
-                fullBuffer = new short[sampleRate];
-            shiftFullBuffer(b);
+        public void setFrequencySpectrumBuffer(double[] Xk,double[] XkMax,int[] kmax) {
             averageFreqSpectrBuffer = new short[screenWidth];
+            maxXk = XkMax;
+            maxk = kmax;
             synchronized (averageFreqSpectrBuffer) {
-                toAverageFullBuffer();
-                //    Log.i("TAG","BUFFERSIZE "+buffer.length);
+                int j=0;
+                for(;j<Math.min(screenWidth,Xk.length);j++) {
+                averageFreqSpectrBuffer[j] = (short)(Xk[j]/XkMax[0]*screenHeight);//((Xk[2*j]+Xk[2*j+1])/2);
+                }
+                for(;j<screenWidth;j++) {
+                    averageFreqSpectrBuffer[j] = 0;
+                }
                 return;
             }
         }
@@ -293,6 +345,25 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
                     } else
                         numbToAverage = numberOfBuffToAverage;
                 }
+            }
+        }
+
+        private void toAverageFreqSpectrBuffer(double[] Xk) {
+        /*    int freqBufferNumber = 0;
+            int frewBufferCounter = 0;
+            while (freqBufferNumber < 2000) {
+                freqBufferNumber += screenWidth;
+                frewBufferCounter++;
+            }
+            int j = 0;
+            for(int i=0;i<freqBufferNumber;i++) {
+                averageFreqSpectrBuffer[j] = (short)((Xk[i]+Xk[i+1])/2);
+                i++;
+                j++;
+            }*/
+
+            for(int j=0;j<screenWidth;j++) {
+                averageFreqSpectrBuffer[j] = (short)Xk[j];//((Xk[2*j]+Xk[2*j+1])/2);
             }
         }
     }

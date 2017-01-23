@@ -17,7 +17,7 @@ public class MainActivity extends Activity {
     AudioDrawer audioDrawer;
     private AudioDrawer.DrawThread drawThread;
     private DFT dft;
-    private final int DFTNumbers = 40000;
+    private final int DFTNumbers = 4000;
     private int DFTCounter = DFTNumbers;
 
     MainActivity link =this;
@@ -39,15 +39,26 @@ public class MainActivity extends Activity {
 
     public void setNextSoundBuffer(short[] buffer) {
         drawThread = audioDrawer.getThread();
-        if(drawThread == null)
-            Log.i("TAG","drawThread == null");
-        drawThread.setEnvelopeBuffer(buffer);
+    //    if(drawThread == null)
+     //       Log.i("TAG","drawThread == null");
 
         if (DFTCounter < DFTNumbers) {
             if (DFTCounter % 4 == 0)
                 dft.setBuffer(buffer);
             DFTCounter++;
         }
+
+        switch (audioDrawer.drawMode) {
+            case 1:
+                drawThread.setEnvelopeBuffer(buffer);
+                break;
+            case 2:
+                if(dft.getXk() != null)
+                    drawThread.setFrequencySpectrumBuffer(dft.getXk(),dft.getMaxXk(),dft.getMaxk());
+                break;
+        }
+
+    //   drawThread.setBuffer(buffer);
     }
 
     private void startSampling() {
