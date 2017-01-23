@@ -147,6 +147,7 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
         private Paint paintForButtons;
         private Paint paintForButtonsText;
         private Paint paintForSpectrum;
+        private Paint paintForSurname;
         private int textSize;
         private int ypos;
         private int numberOfBuffToAverage;
@@ -209,6 +210,15 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             paintForButtonsText.setStrokeJoin(Paint.Join.ROUND);
             paintForButtonsText.setStrokeCap(Paint.Cap.ROUND);
 
+            paintForSurname = new Paint();
+            paintForSurname.setAntiAlias(true);
+            paintForSurname.setDither(true);
+            paintForSurname.setColor(PaintDictionary.lightBlue); //0xAA-HTML, AA - прозрачность
+            paintForSurname.setTextSize(textSize/2);
+            paintForSurname.setStyle(Paint.Style.STROKE);
+            paintForSurname.setStrokeJoin(Paint.Join.ROUND);
+            paintForSurname.setStrokeCap(Paint.Cap.ROUND);
+
             paintForMaxes = new Paint();
             paintForMaxes.setAntiAlias(true);
             paintForMaxes.setDither(true);
@@ -251,7 +261,7 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             lcanvas.drawText("Stop",(int)(buttonWidth+2+buttonWidth/2-2*textSize/2),buttonHeight/2+textSize/2,paintForButtonsText);
             lcanvas.drawRect(buttonWidth*2+4,0,buttonWidth*3+4,buttonHeight,paintForButtons);
             lcanvas.drawText("Change",(int)(buttonWidth*2+4+buttonWidth/2-3*textSize/2),buttonHeight/2+textSize/2,paintForButtonsText);
-
+            lcanvas.drawText("Какурников 442 гр",screenWidth-2*buttonWidth,textSize/2,paintForSurname);
         }
 
         private void onDrawEnvelope(Canvas lcanvas) {
@@ -281,10 +291,10 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
                 }
 
             float helpN = (float)44100/(float)minBufferSize;
-            lcanvas.drawText(Integer.toString((int)(maxk[0]*helpN)),screenWidth-3*buttonWidth,buttonHeight,paintForButtonsText);
-            lcanvas.drawText(Integer.toString((int)(maxk[1]*helpN)),screenWidth-2*buttonWidth,buttonHeight,paintForButtonsText);
-            lcanvas.drawText(Integer.toString((int)(maxk[2]*helpN)),screenWidth-1*buttonWidth,buttonHeight,paintForButtonsText);
-        }
+            lcanvas.drawText(Integer.toString((int)(maxk[0]*helpN)),screenWidth-3*buttonWidth,buttonHeight/2+textSize/2,paintForButtonsText);
+            lcanvas.drawText(Integer.toString((int)(maxk[1]*helpN)),screenWidth-2*buttonWidth,buttonHeight/2+textSize/2,paintForButtonsText);
+            lcanvas.drawText(Integer.toString((int)(maxk[2]*helpN)),screenWidth-1*buttonWidth,buttonHeight/2+textSize/2,paintForButtonsText);
+         }
 
         public void setEnvelopeBuffer(short[] b) {
             if(fullBuffer == null)
