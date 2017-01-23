@@ -146,14 +146,16 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
         private Paint paintForMaxes;
         private Paint paintForButtons;
         private Paint paintForButtonsText;
+        private Paint paintForSpectrum;
         private int textSize;
         private int ypos;
         private int numberOfBuffToAverage;
         private float numberOfBuffToAverageRest;
 
         private short[] averageFreqSpectrBuffer;
-        double[] maxXk = {-1,-1,-1};
-        int[] maxk = {-1,-1,-1};
+        double[] maxXk = {0,0,0};
+        int[] maxk = {0,0,0};
+        int epsilon = 3;//around 65 Hz
 
         DrawThread(SurfaceHolder surfaceHolder) {
             mSurfaceHolder = surfaceHolder;
@@ -179,6 +181,15 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             paintForEnvelope.setStyle(Paint.Style.STROKE);
             paintForEnvelope.setStrokeJoin(Paint.Join.ROUND);
             paintForEnvelope.setStrokeCap(Paint.Cap.ROUND);
+
+            paintForSpectrum = new Paint();
+            paintForSpectrum.setAntiAlias(true);
+            paintForSpectrum.setDither(true);
+            paintForSpectrum.setColor(PaintDictionary.blue); //0xAA-HTML, AA - прозрачность
+            paintForSpectrum.setStrokeWidth(1);
+            paintForSpectrum.setStyle(Paint.Style.STROKE);
+            paintForSpectrum.setStrokeJoin(Paint.Join.ROUND);
+            paintForSpectrum.setStrokeCap(Paint.Cap.ROUND);
 
             paintForButtons = new Paint();
             paintForButtons.setAntiAlias(true);
@@ -257,12 +268,16 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
         private void onDrawFrequenceSpectrum(Canvas lcanvas) {
             lcanvas.drawColor(PaintDictionary.black);
 
+            int paintWidth = (int)(screenWidth*1.0/DFT.highk);
+            paintForMaxes.setStrokeWidth(paintWidth);
+            paintForSpectrum.setStrokeWidth(paintWidth);
+
             if(averageFreqSpectrBuffer != null)
                 for(int i=0;i<screenWidth;i++) {
                     if((i==maxk[0])||(i==maxk[1])||(i==maxk[2]))
-                        lcanvas.drawLine(i,screenHeight,i,screenHeight-averageFreqSpectrBuffer[i],paintForMaxes);
+                        lcanvas.drawLine(i*paintWidth,screenHeight,i*paintWidth,screenHeight-averageFreqSpectrBuffer[i],paintForMaxes);
                     else
-                        lcanvas.drawLine(i,screenHeight,i,screenHeight-averageFreqSpectrBuffer[i],paintForEnvelope);
+                        lcanvas.drawLine(i*paintWidth,screenHeight,i*paintWidth,screenHeight-averageFreqSpectrBuffer[i],paintForSpectrum);
                 }
 
             float helpN = (float)44100/(float)minBufferSize;
@@ -270,17 +285,6 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             lcanvas.drawText(Integer.toString((int)(maxk[1]*helpN)),screenWidth-2*buttonWidth,buttonHeight,paintForButtonsText);
             lcanvas.drawText(Integer.toString((int)(maxk[2]*helpN)),screenWidth-1*buttonWidth,buttonHeight,paintForButtonsText);
         }
-
-    /*    public void setBuffer(short[] b) {
-            switch (drawMode) {
-                case 1:
-                    setEnvelopeBuffer(b);
-                    break;
-                case 2:
-                    setFrequenceSpectrumBuffer(b);
-                    break;
-            }
-        }*/
 
         public void setEnvelopeBuffer(short[] b) {
             if(fullBuffer == null)
@@ -298,9 +302,42 @@ public class AudioDrawer extends SurfaceView implements SurfaceHolder.Callback {
             averageFreqSpectrBuffer = new short[screenWidth];
             maxXk = XkMax;
             maxk = kmax;
+            maxk[1] = maxk[0]*2;
+            maxk[2] = maxk[0]*3;
+         /*   if (maxk[0]*2 < Xk.length) {
+                maxk[1] = maxk[0] * 2;
+                maxXk[1] = Xk[maxk[1]];
+                if (maxk[0]*3 < Xk.length) {
+                    maxk[2] = maxk[0]*3;
+                    maxXk[2] = Xk[maxk[2]];
+                } else {
+                    maxk[2] = maxk[1];
+                }
+            } else {
+                maxk[1] = maxk[0];
+                maxk[2] = maxk[0];
+            }*/
+
+            for(int i=-epsilon;i<maxk[1]+epsilon;i++) {
+                if (maxk[1]+i>0) {
+                    if (Xk[maxk[1] + i] > maxXk[1]) {
+                        maxXk[1] = Xk[maxk[1] + i];
+                        maxk[1] = maxk[1] + i;
+                    }
+                }
+            }
+            for(int i=-epsilon;i<maxk[2]+epsilon;i++) {
+                if (maxk[2]+i>0) {
+                    if (Xk[maxk[2] + i] > maxXk[2]) {
+                        maxXk[2] = Xk[maxk[2] + i];
+                        maxk[2] = maxk[2] + i;
+                    }
+                }
+            }
+
             synchronized (averageFreqSpectrBuffer) {
                 int j=0;
-                for(;j<Math.min(screenWidth,Xk.length);j++) {
+                for(;j<Math.min(screenWidth,DFT.highk);j++) {
                 averageFreqSpectrBuffer[j] = (short)(Xk[j]/XkMax[0]*screenHeight);//((Xk[2*j]+Xk[2*j+1])/2);
                 }
                 for(;j<screenWidth;j++) {
