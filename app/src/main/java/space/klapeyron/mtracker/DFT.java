@@ -58,20 +58,31 @@ public class DFT {
             double im2 = 0;
             float pi2N = 2*(float)3.1415926535/(float) N;
             double xnwn = 0;
+            double xNnwNn = 0;
 
             for(int j=0;j<DFT.highk;j++) {
                 for (int i = 0; i < N; i++) {
                     xnwn = xn[i]*0.5*(1-Math.cos(2*(float)3.1415926535*i/(N-1)));
                     re += xnwn*Math.cos(pi2N*j*i);
                     im += xnwn*Math.sin(pi2N*j*i);
-                    xnwn = xn[i]*0.5*(1-Math.cos(2*(float)3.1415926535*i/(N-1)));
-                    re2 += xnwn*Math.cos(pi2N*j*(i+1));
-                    im2 += xnwn*Math.sin(pi2N*j*(i+1));
                 }
+                xnwn = xn[0]*0.5*(1-Math.cos(2*(float)3.1415926535*0/(N-1)));
+                re2 += xnwn*Math.cos(pi2N*j*0);
+                im2 += xnwn*Math.sin(pi2N*j*0);
+                for (int i = 1; i < N/2; i++) {
+                    xnwn = xn[i]*0.5*(1-Math.cos(2*(float)3.1415926535*i/(N-1)));
+                    xNnwNn = xn[N-i]*0.5*(1-Math.cos(2*(float)3.1415926535*(N-i)/(N-1)));
+                    re2 += (xnwn+xNnwNn)*Math.cos(pi2N*j*i);
+                    im2 += (xnwn+xNnwNn)*Math.sin(pi2N*j*i);
+                }
+                xnwn = xn[N/2]*0.5*(1-Math.cos(2*(float)3.1415926535*N/2/(N-1)));
+                re2 += xnwn*Math.cos(pi2N*j*N/2);
+                im2 += xnwn*Math.sin(pi2N*j*N/2);
                 Xk[j] += Math.pow(Math.pow(re,2)+Math.pow(im,2),0.5);
                 Xk2[j] += Math.pow(Math.pow(re,2)+Math.pow(im,2),0.5);
-                if(Xk[j]!=Xk2[j])
-                    Log.i("TAG","false");
+         //       if(Xk[j]!=Xk2[j])
+         //           Log.i("TAG","false");
+                Log.i("TAG","EQUALS "+Boolean.toString(Xk[j]==Xk2[j]));
 
             /*    for(int p=0;p<5;p++) {
                     if (Xk[j]>maxXk[p]) {
